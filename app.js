@@ -49,7 +49,7 @@ $('loadResult').onclick=async()=>{if(!admin)return;const stage=$('resultStage').
 async function saveResult(publish){if(!admin)return;const stage=$('resultStage').value,event=$('resultEvent').value;if(!event)return toast('Select competition');const rows=collectRows();if(!rows.length||rows.length>10)return toast('Enter 1–10 winners');const seen=new Set(),participants=[];for(const r of rows){const student=students.find(s=>s.chest===r.chest);if(!student)return toast('Choose a student in every row');if(seen.has(r.chest))return toast('Duplicate student: '+r.chest);seen.add(r.chest);if(!r.prize)return toast('Choose a place for every winner');const school=schools.find(s=>s.id===student.schoolId);if(!school)return toast('Student school missing');participants.push({chest:student.chest,name:student.name,schoolId:school.id,schoolName:school.name,prize:r.prize})}const id=eventKey(stage,event);try{const batch=writeBatch(db);batch.set(doc(db,'privateResults',id),{stage,event,participants,updatedAt:serverTimestamp()});if(publish){batch.set(doc(db,'publicResults',id),{stage,event,participants,updatedAt:serverTimestamp()})}await batch.commit();toast(publish?'Prize results published':'Draft saved privately')}catch(e){toast('Save failed: '+e.message)}}
 $('saveDraft').onclick=()=>saveResult(false);$('publishResult').onclick=()=>saveResult(true);
 // Free GitHub gallery: public repository images folder, no Firebase Storage or billing.
-const GITHUB_OWNER='nppadmasree', GITHUB_REPO='kannamvalli-kalolsavam-2026';
+const GITHUB_OWNER='nppadmasree', GITHUB_REPO='kunnothuparambpanchayathmela';
 async function loadGitHubGallery(){
   const url=`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/images?ref=main`;
   try {
@@ -59,7 +59,7 @@ async function loadGitHubGallery(){
     const files=await response.json();
     gallery=files.filter(f=>f.type==='file'&&/\.(jpe?g|png|webp|gif)$/i.test(f.name))
       .sort((a,b)=>b.name.localeCompare(a.name,'en',{numeric:true}))
-      .slice(0,60).map(f=>({url:f.download_url || new URL(`images/${encodeURIComponent(f.name)}`,document.baseURI).href,caption:f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' '),stage:''}));
+      .slice(0,60).map(f=>({url:`./images/${encodeURIComponent(f.name)}`,caption:f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' '),stage:''}));
     renderGallery();
   }catch(e){console.warn('Gallery fetch failed',e);$('gallery').textContent='ചിത്രങ്ങൾ ഇപ്പോൾ ലഭ്യമല്ല. പിന്നീട് വീണ്ടും ശ്രമിക്കുക.';}
 }
