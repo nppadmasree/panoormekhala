@@ -4,7 +4,7 @@ import {getFirestore,doc,getDoc,getDocs,onSnapshot,setDoc,deleteDoc,collection,a
 import {firebaseConfig} from './firebase-config.js';
 const $=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const defaults=[{id:'1',name:'ശ്രുതിലയം',time:'09:30',status:'upcoming',current:'',events:[{name:'ഉദ്ഘാടനം',status:'upcoming'},{name:'ലളിതഗാനം',status:'upcoming'},{name:'പദ്യം ചൊല്ലൽ - മലയാളം',status:'upcoming'},{name:'ദേശഭക്തിഗാനം',status:'upcoming'},{name:'സംഘഗാനം',status:'upcoming'},{name:'മാപ്പിളപ്പാട്ട്',status:'upcoming'}]},{id:'2',name:'സ്വരരാഗം',time:'09:30',status:'upcoming',current:'',events:[{name:'കഥാകഥനം',status:'upcoming'},{name:'അഭിനയഗാനം - മലയാളം',status:'upcoming'},{name:'അഭിനയഗാനം - ഇംഗ്ലീഷ്',status:'upcoming'},{name:'പദ്യം ചൊല്ലൽ - ഇംഗ്ലീഷ്',status:'upcoming'},{name:'മോണോ ആക്ട്',status:'upcoming'},{name:'പ്രസംഗം - മലയാളം',status:'upcoming'}]}];
-const themes=['rainbow','moon','star'];
+const themes=['rainbow','moon'];
 let persistedStages=structuredClone(defaults),studentUnsub=null;let stages=structuredClone(defaults),manualNotices=[],automaticNotices=[],legacyResults=[],publicResults=[],schools=[],students=[],gallery=[],admin=false,auth,db,activeKey='',editRows=[],dirty=false;
 const toast=s=>{const t=$('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),5500)};
 const label=s=>({upcoming:'വരാനിരിക്കുന്നത്',running:'നടക്കുന്നു',done:'പൂർത്തിയായി'})[s]||'വരാനിരിക്കുന്നത്';
@@ -30,7 +30,46 @@ batch.set(doc(db,'settings','announcements'),{items:[],updatedAt:serverTimestamp
 await batch.commit();stages[i]=draft;persistedStages[i]=structuredClone(draft);toast(messages.length?'Stage saved; latest announcements published':'Stage updated live')}catch(e){toast('Save failed: '+e.message)}}
 
 $('adminStages').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const i=Number(b.dataset.i),j=Number(b.dataset.j);if(b.classList.contains('saveStage'))return saveStage(i);const draft=readStage(i);if(b.classList.contains('addEvent'))draft.events.push({name:'പുതിയ മത്സരം',status:'upcoming'});else if(b.classList.contains('remove'))draft.events.splice(j,1);else if(b.classList.contains('moveUp')&&j>0)[draft.events[j-1],draft.events[j]]=[draft.events[j],draft.events[j-1]];else if(b.classList.contains('moveDown')&&j<draft.events.length-1)[draft.events[j],draft.events[j+1]]=[draft.events[j+1],draft.events[j]];stages[i]=draft;renderAdmin()});
-$('toggleLogin').onclick=()=>$('loginPanel').classList.toggle('hidden');$('login').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value,$('password').value);$('password').value=''}catch(e){toast('Login failed: '+e.code)}};$('logout').onclick=()=>signOut(auth);
+$('toggleLogin').onclick = () => $('loginPanel').classList.toggle('hidden');
+async function handleAdminLogin() {
+  const emailInput = $('email');
+  const passwordInput = $('password');
+  const loginButton = $('login');
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+  if (!email) { toast('Please enter your email address.'); emailInput.focus(); return; }
+  if (!password) { toast('Please enter your password.'); passwordInput.focus(); return; }
+  if (!auth) { toast('Firebase is still connecting. Please try again.'); return; }
+  loginButton.disabled = true;
+  const previousLabel = loginButton.textContent;
+  loginButton.textContent = 'Signing in…';
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    passwordInput.value = '';
+  } catch (error) {
+    console.error('Firebase login error:', error);
+    const messages = {
+      'auth/invalid-credential': 'Incorrect email or password. Check Firebase Authentication users.',
+      'auth/wrong-password': 'Incorrect password.',
+      'auth/user-not-found': 'This email is not registered in Firebase Authentication.',
+      'auth/missing-password': 'Firebase did not receive the password. Please type it again.',
+      'auth/too-many-requests': 'Too many login attempts. Please wait and try again.',
+      'auth/operation-not-allowed': 'Enable Email/Password in Firebase Authentication.',
+      'auth/unauthorized-domain': 'Add this GitHub Pages domain in Firebase Authentication authorized domains.',
+      'auth/network-request-failed': 'Network error. Check your internet connection.'
+    };
+    toast(messages[error.code] || ('Login failed: ' + (error.code || error.message)));
+  } finally {
+    loginButton.disabled = false;
+    loginButton.textContent = previousLabel;
+  }
+}
+$('login').onclick = handleAdminLogin;
+$('password').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); handleAdminLogin(); }
+});
+$('logout').onclick = () => signOut(auth);
+
 $('saveNotices').onclick=async()=>{try{await setDoc(doc(db,'settings','announcements'),{items:$('noticeEditor').value.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,3),updatedAt:serverTimestamp()});toast('Announcements published')}catch(e){toast(e.message)}};
 $('clearNotices').onclick=async()=>{if(!admin)return;if(!confirm('Clear ALL public announcements?'))return;try{const old=await getDocs(collection(db,'autoAnnouncements'));const batch=writeBatch(db);old.docs.forEach(d=>batch.delete(d.ref));batch.set(doc(db,'settings','announcements'),{items:[],updatedAt:serverTimestamp()});await batch.commit();$('noticeEditor').value='';toast('All announcements cleared')}catch(e){toast('Clear failed: '+e.message)}};
 function renderDirectories(){$('schoolList').innerHTML=`<p>${schools.length} schools: ${schools.slice(0,20).map(s=>esc(s.name)).join(' · ')}</p>`;$('studentList').textContent=`${students.length} students registered`;$('studentSchool').innerHTML=schools.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');}
