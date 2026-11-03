@@ -1,10 +1,10 @@
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAk7fnSQlWC4rQJK48YI5KaRCr8bYbiU0k",
-  authDomain: "panoormekhalakalolsavam.firebaseapp.com",
-  projectId: "panoormekhalakalolsavam",
-  storageBucket: "panoormekhalakalolsavam.firebasestorage.app",
-  messagingSenderId: "669280715595",
-  appId: "1:669280715595:web:548c4e722646ea44f35ece",
-  measurementId: "G-97JSHP7PL6"
+// Replace these placeholder values with the NEW Firebase project's Web App config.
+// Do not reuse the first school's Firebase project unless you want shared data.
+export const firebaseConfig = {
+  apiKey: "REPLACE_WITH_NEW_API_KEY",
+  authDomain: "REPLACE_WITH_NEW_PROJECT.firebaseapp.com",
+  projectId: "REPLACE_WITH_NEW_PROJECT",
+  storageBucket: "REPLACE_WITH_NEW_PROJECT.firebasestorage.app",
+  messagingSenderId: "REPLACE_WITH_NEW_SENDER_ID",
+  appId: "REPLACE_WITH_NEW_APP_ID"
 };
